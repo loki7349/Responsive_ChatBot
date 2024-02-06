@@ -1,20 +1,25 @@
 const chatInput = document.querySelector(".chat-input textarea");
 const sendChatBtn = document.querySelector(".chat-input span");
 const chatbox = document.querySelector(".chatbox")
+const chatbotToggler = document.querySelector(".chatbot-toggler")
+const chatbotCloseBtn = document.querySelector(".close-btn")
 
 let userMessage;
-const API_KEY = "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";
+const API_KEY = "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";
+const inputInHeight = chatInput.scrollHeight;
 
 const createChatLi = (message, className) => {
     const chatLi = document.createElement("li");
     chatLi.classList.add("chat", className);
-    let chatContent = className === "outgoing" ? `<p>${message}</p>` : `<span class="material-symbols-outlined">smart_toy</span><p>${message}</p>`
+    let chatContent = className === "outgoing" ? `<p></p>` : `<span class="material-symbols-outlined">smart_toy</span><p></p>`
     chatLi.innerHTML = chatContent;
+    chatLi.querySelector("p").textContent = message;
     return chatLi
 }
 
-const generateResponse = () => {
+const generateResponse = (incomingChatLi) => {
     const API_URL = "https://api.openai.com/v1/chat/completions";
+    const messageElements = incomingChatLi.querySelector("p")
 
     const requestOptions = {
         method: "POST",
@@ -29,21 +34,44 @@ const generateResponse = () => {
     }
 
     fetch(API_URL, requestOptions).then(res => res.json()).then(data => {
+        messageElements.textContext = data.choices[0].message.content;
         console.log(data);
     }).catch((error) => {
+        messageElements.classList.add("error");
+        messageElements.textContext = "Oops! Something went wrong. Please try again.";
         console.log(error);
-    })
+    }).finally(() => chatbox.scrollTo(0, chatbox.scrollHeight));
 }
 
 const handleChat = () => {
     userMessage = chatInput.value.trim();
     if(!userMessage) return;
+    chatInput.value = "";
+    chatInput.style.height = `${inputInHeight}px`
 
     chatbox.appendChild(createChatLi(userMessage, "outgoing"));
+    chatbox.scrollTo(0, chatbox.scrollHeight);
 
     setTimeout(() => {
-        chatbox.appendChild(createChatLi("Thinking...", "incoming"));
-        generateResponse();
+        const incomingChatLi = createChatLi("Thinking...", "incoming")
+        chatbox.appendChild(incomingChatLi);
+        chatbox.scrollTo(0, chatbox.scrollHeight);
+        generateResponse(incomingChatLi);
     }, 600);
 }
+
+chatInput.addEventListener("input", () => {
+    chatInput.style.height = `${inputInHeight}px`
+    chatInput.style.height = `${chatInput.scrollHeight}px`
+})
+
+chatInput.addEventListener("keydown", (e) => {
+    if(e.key === "Enter" && !e.shiftKey && window.innerWidth > 800){
+        e.preventDefault();
+        handleChat();
+    }
+})
+
+chatbotCloseBtn.addEventListener("click", () => document.body.classList.toggle("show-chatbot"))
+chatbotToggler.addEventListener("click", () => document.body.classList.toggle("show-chatbot"))
 sendChatBtn.addEventListener("click", handleChat);
